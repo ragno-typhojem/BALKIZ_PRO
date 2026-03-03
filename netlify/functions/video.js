@@ -18,7 +18,7 @@ const videoRes = await fetch(
   {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${HF_TOKEN}`,
+      'Authorization': `Bearer ${HF_API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ prompt: userPrompt })
