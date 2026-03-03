@@ -13,29 +13,30 @@ exports.handler = async (event) => {
     const { prompt } = JSON.parse(event.body);
     const safePrompt = `child-friendly, colorful, cute, safe for kids, animated, ${prompt}`;
 
-const videoRes = await fetch(
-  'https://router.huggingface.co/fal-ai/wan/t2v-14b',
-  {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${HF_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ prompt: userPrompt })
-  }
-);
+    const videoRes = await fetch(
+      'https://router.huggingface.co/fal-ai/wan/t2v-14b',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.HF_API_KEY}`,  // ✅ FIX 1
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prompt: safePrompt })           // ✅ FIX 2
+      }
+    );
+
     if (!videoRes.ok) {
       const err = await videoRes.json().catch(() => ({ error: 'Unknown' }));
       return { statusCode: videoRes.status, headers, body: JSON.stringify({ error: err.error || JSON.stringify(err) }) };
     }
 
-    const buffer = await videoRes.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ video: `data:video/mp4;base64,${base64}` })
-    };
+    const data = await videoRes.json();                        // ✅ FIX 3
+    const videoUrl = data?.video?.url || data?.url;
+
+    if (!videoUrl) return { statusCode: 500, headers, body: JSON.stringify({ error: 'No video in response', raw: data }) };
+
+    return { statusCode: 200, headers, body: JSON.stringify({ video: videoUrl }) };
+
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
