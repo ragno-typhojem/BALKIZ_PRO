@@ -13,25 +13,23 @@ exports.handler = async (event) => {
     const { prompt } = JSON.parse(event.body);
     const safePrompt = `child-friendly, colorful, cute, safe for kids, animated, ${prompt}`;
 
-    // router.huggingface.co — yeni zorunlu endpoint
-    const res = await fetch(
-      'https://router.huggingface.co/hf-inference/models/cerspense/zeroscope_v2_576w',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.HF_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ inputs: safePrompt })
-      }
-    );
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Unknown' }));
-      return { statusCode: res.status, headers, body: JSON.stringify({ error: err.error || JSON.stringify(err) }) };
+const videoRes = await fetch(
+  'https://router.huggingface.co/fal-ai/wan/t2v-14b',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${HF_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ prompt: userPrompt })
+  }
+);
+    if (!videoRes.ok) {
+      const err = await videoRes.json().catch(() => ({ error: 'Unknown' }));
+      return { statusCode: videoRes.status, headers, body: JSON.stringify({ error: err.error || JSON.stringify(err) }) };
     }
 
-    const buffer = await res.arrayBuffer();
+    const buffer = await videoRes.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
     return {
       statusCode: 200,
