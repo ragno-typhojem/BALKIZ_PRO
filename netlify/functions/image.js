@@ -6,39 +6,23 @@ exports.handler = async (event) => {
   const { prompt } = JSON.parse(event.body || '{}');
 
   try {
-    const response = await fetch(
-     'https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.HF_API_KEY}`,
-          'Content-Type': 'application/json',
-          'x-wait-for-model': 'true'
-        },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: { width: 512, height: 512 }
-        })
-      }
-    );
+    // Pollinations — ücretsiz, key yok, flux modeli kullanıyor
+    const encoded = encodeURIComponent(prompt);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?model=flux&width=768&height=768&nologo=true&enhance=true`;
 
-    const contentType = response.headers.get('content-type') || '';
-
-    if (contentType.includes('application/json')) {
-      const err = await response.json();
+    // URL'in gerçekten döndüğünü doğrula
+    const check = await fetch(imageUrl);
+    if (!check.ok) {
       return {
         statusCode: 200,
-        body: JSON.stringify({ error: err.error || JSON.stringify(err) })
+        body: JSON.stringify({ error: 'Görsel alınamadı' })
       };
     }
-
-    const buffer = await response.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: `data:image/jpeg;base64,${base64}` })
+      body: JSON.stringify({ image: imageUrl })
     };
 
   } catch (e) {
