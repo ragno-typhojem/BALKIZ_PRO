@@ -1,42 +1,34 @@
-exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
-  };
-
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
-
+// server.js / api/image endpoint
+app.post('/api/image', async (req, res) => {
+  const { prompt } = req.body;
   try {
-    const { prompt } = JSON.parse(event.body);
-    const safePrompt = `child-friendly, cartoon style, colorful, safe for kids, cute, high quality, ${prompt}`;
-
-    const imageRes = await fetch(
-      'https://router.huggingface.co/fal-ai/flux/dev',
+    const response = await fetch(
+      'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.HF_API_KEY}`,  // ✅ FIX 1
+          'Authorization': `Bearer ${process.env.HF_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ prompt: safePrompt })           // ✅ FIX 2
+        body: JSON.stringify({ inputs: prompt })
       }
     );
 
-    if (!imageRes.ok) {
-      const err = await imageRes.json().catch(() => ({ error: 'Unknown error' }));
-      return { statusCode: imageRes.status, headers, body: JSON.stringify({ error: err.error || 'Image generation failed' }) };
+    if(!response.ok) {
+      const err = await response.json();
+      // Model yükleniyorsa
+      if(err.error?.includes('loading')) {
+        return res.json({ error: 'loading' });
+      }
+      return res.json({ error: err.error || 'Hata' });
     }
 
-    const data = await imageRes.json();                        // ✅ FIX 3 — fal-ai JSON döner
-    const imageUrl = data?.images?.[0]?.url || data?.image?.url || data?.url;
+    // Binary blob döner → base64'e çevir
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    res.json({ image: `data:image/jpeg;base64,${base64}` });
 
-    if (!imageUrl) return { statusCode: 500, headers, body: JSON.stringify({ error: 'No image in response', raw: data }) };
-
-    return { statusCode: 200, headers, body: JSON.stringify({ image: imageUrl }) };
-
-  } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+  } catch(e) {
+    res.json({ error: e.message });
   }
-};
+});
