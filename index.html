@@ -660,7 +660,7 @@ body::after {
     <div class="think-orb">
       <div class="think-orb-img">
         <img src="assets/balkiz.png" alt="Balkız"
-          onerror="this.src='';this.parentElement.innerHTML='<span style=\'font-size:52px\'>🧞‍♀️</span>'"/>
+   onerror="var p=this.parentElement;if(p){p.innerHTML='<div class=\'avatar-emoji\'>🧞‍♀️</div>'}"
       </div>
     </div>
     <!-- floating particles injected by JS -->
@@ -679,7 +679,7 @@ body::after {
   <div class="intro-wrap">
     <div class="intro-ring">
       <img class="intro-img" src="assets/balkiz.png" alt="Balkız"
-        onerror="this.style.display='none';this.parentElement.innerHTML+='<span style=\'font-size:60px\'>🧞‍♀️</span>'"/>
+      onerror="var p=this.parentElement;if(p){this.style.display='none';p.innerHTML+='<span style=\'font-size:60px\'>🧞‍♀️</span>'}"
     </div>
     <div class="intro-name">B.A.L.K.I.Z</div>
     <div class="intro-sub">BEYİN ADAPTİF ÖĞRENME KİTLİ İNTERAKTİF ZEKA<br/>v2.4.1 // KUANTUM ÇEKİRDEK</div>
@@ -705,8 +705,8 @@ body::after {
       <div class="energy-ring"></div>
       <div id="liquid-blob"></div>
       <div id="avatar-photo-wrap">
-        <img id="avatar-photo" src="assets/balkiz.png" alt="Balkız"
-          onerror="this.parentElement.innerHTML='<div class=\'avatar-emoji\'>🧞‍♀️</div>'"/>
+        <img id="avatar-photo" src="src/balkizface.png" alt="Balkız"
+       onerror="var p=this.parentElement;if(p){this.src='';p.innerHTML='<span style=\'font-size:52px\'>🧞‍♀️</span>'}"
       </div>
     </div>
 
@@ -767,7 +767,7 @@ body::after {
       <div class="welcome" id="welcome-screen">
         <div class="welcome-orb">
           <img src="assets/balkiz.png" alt="Balkız"
-            onerror="this.parentElement.innerHTML='<span style=\'font-size:44px\'>✨</span>'"/>
+         onerror="var p=this.parentElement;if(p){p.innerHTML='<span style=\'font-size:44px\'>✨</span>'}"
         </div>
         <div class="welcome-title">Merhaba! Ben <span>Balkız</span> 👋</div>
         <div class="welcome-text">
@@ -1108,7 +1108,38 @@ async function genImage(prompt){
       }
     } catch(e){ showWave(false); setSpeak(false); fallbackTTS(text); }
   }
+function showTyping(){
+  const msgs = document.getElementById('messages');
+  const w    = msgs.querySelector('#welcome-screen');
+  if(w) w.remove();
 
+  const id = 'typing-' + Date.now();
+  const d  = document.createElement('div');
+  d.className = 'msg ai'; d.id = id;
+  d.innerHTML = `
+    <div class="msg-av">
+      <img src="assets/balkiz.png" alt="B"
+        onerror="var p=this.parentElement;if(p)p.textContent='🤖'"/>
+    </div>
+    <div class="msg-body">
+      <div class="msg-name">BALKIZ</div>
+      <div class="msg-bubble">
+        <div class="typing-wrap">
+          <div class="td"></div>
+          <div class="td"></div>
+          <div class="td"></div>
+        </div>
+      </div>
+    </div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function removeTyping(id){
+  const el = document.getElementById(id);
+  if(el) el.remove();
+}
   function fallbackTTS(text){
     if(!liveMode || !('speechSynthesis' in window)) return;
     const utt = new SpeechSynthesisUtterance(
