@@ -2,6 +2,7 @@ exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
   };
 
@@ -10,11 +11,11 @@ exports.handler = async (event) => {
 
   try {
     const { prompt } = JSON.parse(event.body);
-    const safePrompt = `child-friendly, colorful, cute, safe for kids, ${prompt}`;
+    const safePrompt = `child-friendly, colorful, cute, safe for kids, animated, ${prompt}`;
 
-    // zeroscope_v2_576w — ücretsiz, hızlı, HF Inference API destekli
+    // router.huggingface.co — yeni zorunlu endpoint
     const res = await fetch(
-      'https://api-inference.huggingface.co/models/cerspense/zeroscope_v2_576w',
+      'https://router.huggingface.co/hf-inference/models/cerspense/zeroscope_v2_576w',
       {
         method: 'POST',
         headers: {
@@ -26,13 +27,17 @@ exports.handler = async (event) => {
     );
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-      return { statusCode: res.status, headers, body: JSON.stringify({ error: err.error || 'Video generation failed' }) };
+      const err = await res.json().catch(() => ({ error: 'Unknown' }));
+      return { statusCode: res.status, headers, body: JSON.stringify({ error: err.error || JSON.stringify(err) }) };
     }
 
     const buffer = await res.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
-    return { statusCode: 200, headers, body: JSON.stringify({ video: `data:video/mp4;base64,${base64}` }) };
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ video: `data:video/mp4;base64,${base64}` })
+    };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
