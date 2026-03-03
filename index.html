@@ -986,36 +986,35 @@ function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scr
   // ═══════════════════════════
   //  CHAT
   // ═══════════════════════════
-  async function doChat(text){
-    history.push({role:'user', content:text});
-    if(history.length>22) history=[history[0],...history.slice(-20)];
+async function doChat(text){
+  history.push({role:'user', content:text});
+  if(history.length>22) history=[history[0],...history.slice(-20)];
 
-    setThink(true);
+  const typingId = showTyping();
 
-    try{
-      const res  = await fetch('/api/chat',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({messages:history})
-      });
-      const data = await res.json();
-      setThink(false);
+  try{
+    const res  = await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:history})
+    });
+    const data = await res.json();
+    removeTyping(typingId);
 
-      if(data.choices?.[0]){
-        const reply = data.choices[0].message.content;
-        history.push({role:'assistant', content:reply});
-        updateMem();
-        if(liveMode){ addMsg('ai',reply); await speakEL(reply); }
-        else { await typewriterMsg(reply); }
-      } else {
-        addMsg('ai','⚠️ Hata: '+(data.error?.message||JSON.stringify(data.error||data)));
-      }
-    } catch(e){
-      setThink(false);
-      addMsg('ai','⚠️ Bağlantı hatası: '+e.message);
+    if(data.choices?.[0]){
+      const reply = data.choices[0].message.content;
+      history.push({role:'assistant', content:reply});
+      updateMem();
+      if(liveMode){ addMsg('ai',reply); await speakEL(reply); }
+      else { await typewriterMsg(reply); }
+    } else {
+      addMsg('ai','⚠️ Hata: '+(data.error?.message||JSON.stringify(data.error||data)));
     }
+  } catch(e){
+    removeTyping(typingId);
+    addMsg('ai','⚠️ Bağlantı hatası: '+e.message);
   }
-
+}
   // ═══════════════════════════
   //  TYPEWRITER
   // ═══════════════════════════
@@ -1064,25 +1063,24 @@ function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scr
   // ═══════════════════════════
   //  IMAGE GEN
   // ═══════════════════════════
-  async function genImage(prompt){
-    setThink(true);
-    try {
-      const res  = await fetch('/api/image',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt})
-      });
-      const data = await res.json();
-      setThink(false);
-      if(data.image)      addMediaMsg('image', data.image, prompt);
-      else if(data.error?.toLowerCase().includes('load')) addMsg('ai','⏳ Model yükleniyor, 20 sn sonra tekrar dene!');
-      else addMsg('ai','⚠️ Görsel üretilemedi: '+(data.error||'Bilinmeyen hata'));
-    } catch(e){
-      setThink(false);
-      addMsg('ai','⚠️ Görsel hatası: '+e.message);
-    }
+async function genImage(prompt){
+  setThink(true);
+  try {
+    const res  = await fetch('/api/image',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt})
+    });
+    const data = await res.json();
+    setThink(false);
+    if(data.image)      addMediaMsg('image', data.image, prompt);
+    else if(data.error?.toLowerCase().includes('load')) addMsg('ai','⏳ Model yükleniyor, 20 sn sonra tekrar dene!');
+    else addMsg('ai','⚠️ Görsel üretilemedi: '+(data.error||'Bilinmeyen hata'));
+  } catch(e){
+    setThink(false);
+    addMsg('ai','⚠️ Görsel hatası: '+e.message);
   }
-
+}
   // ═══════════════════════════
   //  ELEVENLABS TTS
   // ═══════════════════════════
