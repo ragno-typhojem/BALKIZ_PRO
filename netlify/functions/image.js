@@ -1,6 +1,15 @@
-// server.js / api/image endpoint
-app.post('/api/image', async (req, res) => {
-  const { prompt } = req.body;
+const fetch = require('node-fetch');
+
+exports.handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  const { prompt } = JSON.parse(event.body || '{}');
+  if (!prompt) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Prompt gerekli' }) };
+  }
+
   try {
     const response = await fetch(
       'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
@@ -8,27 +17,41 @@ app.post('/api/image', async (req, res) => {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.HF_API_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'x-wait-for-model': 'true'   // model yüklenene kadar bekle
         },
-        body: JSON.stringify({ inputs: prompt })
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: { width: 512, height: 512 }
+        })
       }
     );
 
-    if(!response.ok) {
+    // HF bazen JSON hata, bazen binary image döner
+    const contentType = response.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
       const err = await response.json();
-      // Model yükleniyorsa
-      if(err.error?.includes('loading')) {
-        return res.json({ error: 'loading' });
-      }
-      return res.json({ error: err.error || 'Hata' });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ error: err.error || JSON.stringify(err) })
+      };
     }
 
-    // Binary blob döner → base64'e çevir
+    // Başarılı → binary → base64
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
-    res.json({ image: `data:image/jpeg;base64,${base64}` });
 
-  } catch(e) {
-    res.json({ error: e.message });
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: `data:image/jpeg;base64,${base64}` })
+    };
+
+  } catch (e) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ error: e.message })
+    };
   }
-});
+};
