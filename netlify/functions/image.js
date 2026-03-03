@@ -1,14 +1,9 @@
-const fetch = require('node-fetch');
-
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
   const { prompt } = JSON.parse(event.body || '{}');
-  if (!prompt) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Prompt gerekli' }) };
-  }
 
   try {
     const response = await fetch(
@@ -18,7 +13,7 @@ exports.handler = async (event) => {
         headers: {
           'Authorization': `Bearer ${process.env.HF_API_KEY}`,
           'Content-Type': 'application/json',
-          'x-wait-for-model': 'true'   // model yüklenene kadar bekle
+          'x-wait-for-model': 'true'
         },
         body: JSON.stringify({
           inputs: prompt,
@@ -27,7 +22,6 @@ exports.handler = async (event) => {
       }
     );
 
-    // HF bazen JSON hata, bazen binary image döner
     const contentType = response.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
@@ -38,7 +32,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Başarılı → binary → base64
     const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
 
